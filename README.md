@@ -1,9 +1,10 @@
 # EchidnaLB
-EchidnaLB is a layer 7 distributed load-balancer for HTTP backend servers written in Rust.
+EchidnaLB is a layer 7 load-balancer for HTTP backend servers written in Rust.
 
 ## Features
 - **HTTP1.1 & HTTP2**
-  - Supports both HTTP/1.1 and HTTP/2 protocols, ensuring compatibility and performance for modern web applications.
+  - Supports both HTTP/1.1 and HTTP/2 protocols, ensuring compatibility and 
+  performance for modern web applications.
 
 - **IPv4 & IPv6 Listeners**
   - Supports both IPv4 & IPv6 listeners for greater network flexibility.
@@ -50,7 +51,9 @@ You may download a pre-compiled binary from the [GitHub release page](https://gi
 
 ## Usage
 
-By default EchidnaLB binds to port 9000 (HTTP) and 9001 (HTTPS). If you wish to bind to the standard HTTP and HTTPS ports 80 and 443 respectively, on Linux, every port below 1024 is `privileged` so you either have to:
+By default, EchidnaLB binds to port 9000 (HTTP) and 9001 (HTTPS). If you wish 
+to bind to the standard HTTP and HTTPS ports 80 and 443 respectively, on Linux, 
+every port below 1024 is `privileged` so you either have to:
 
 - run the program as root `sudo`
 - use `setcap 'cap_net_bind_service=+ep' /path/to/echidna-lb`
@@ -63,6 +66,7 @@ A minimal configuration file is required. Example:
 port: 9000
 https_port: 9001 # optional
 algorithm: "RoundRobin"
+workers: 10 # optional
 
 backends:
   - url: "http://127.0.0.1:8081"
@@ -81,7 +85,9 @@ ssl: #optional
 
 - `port`: The port on which the HTTP server listens.
 - `https_port`: (Optional) The port on which the HTTPS server listens.
-- `algorithm`: The load balancing algorithm to use. Available options: RoundRobin, LeastConnections, WeightedRoundRobin, IPHashing.
+- `algorithm`: The load balancing algorithm to use. Available options:
+RoundRobin, LeastConnections, WeightedRoundRobin, IPHashing.
+- `workers`: (Optional) The number of worker threads to be used by the server.
 - `backends`: A list of backend servers with their URLs and weights (for weighted algorithms).
 - `healthcheck`: (Optional) Configuration for periodic health checks.
   - `interval_sec`: Interval in seconds between health checks.
@@ -101,7 +107,9 @@ echidna-lb --config config.yaml
 ```
 
 ## Contributing
-Contributions are welcome! Please open an issue or submit a pull request if you have suggestions or improvements.
+Contributions are welcome! Please open an issue or submit a pull request if 
+you have suggestions or improvements.
 
 ## License
-This project is licensed under the MIT License. See the [LICENSE](./LICENSE) file for more details.
+This project is licensed under the MIT License. 
+See the [LICENSE](./LICENSE) file for more details.

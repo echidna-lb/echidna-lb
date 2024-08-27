@@ -1,15 +1,16 @@
 use clap::Parser;
 use serde::Deserialize;
-use serde_yaml::Error;
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
+
+use crate::error::EchidnaError;
 
 #[derive(Parser)]
 #[clap(author, version, about, long_about = None)]
 pub struct Args {
     /// Path to the configuration file
     #[clap(short, long, default_value = "./config.yaml")]
-    pub config: String,
+    pub config: PathBuf,
 }
 
 #[derive(Deserialize)]
@@ -18,6 +19,7 @@ pub struct Config {
     pub debug: Option<bool>,
     pub https_port: Option<u16>,
     pub algorithm: String,
+    pub workers: Option<usize>,
     pub healthcheck: Option<HealthcheckConfig>,
     pub backends: Vec<BackendConfig>,
     pub ssl: Option<SslConfig>,
@@ -41,7 +43,7 @@ pub struct SslConfig {
     pub key_path: String,
 }
 
-pub fn load_config<P: AsRef<Path>>(path: P) -> Result<Config, Error> {
-    let config_str = fs::read_to_string(path).expect("Unable to read config file");
-    serde_yaml::from_str(&config_str)
+pub fn load_config<P: AsRef<Path>>(path: P) -> Result<Config, EchidnaError> {
+    let config_str = fs::read_to_string(path)?;
+    Ok(serde_yaml::from_str(&config_str)?)
 }

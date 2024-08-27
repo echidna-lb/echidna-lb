@@ -1,8 +1,9 @@
+use crate::backend::Backend;
+use simple_error::SimpleError;
+use log;
 use actix_web::{web, HttpRequest, HttpResponse, Responder};
 use std::sync::atomic::Ordering;
-use super::backend::Backend;
 use algorithms::{ip_hashing, round_robin, weighted_round_robin, least_connections, least_latency};
-use log;
 
 pub mod algorithms;
 
@@ -12,8 +13,7 @@ pub struct Dispatcher {
     pub current: std::sync::atomic::AtomicUsize,
 }
 
-#[derive(PartialEq)]
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 pub enum LoadBalancingAlgorithm {
     RoundRobin,
     LeastConnections,
@@ -25,7 +25,13 @@ pub enum LoadBalancingAlgorithm {
 impl Dispatcher {
     pub async fn dispatch(&self, req: HttpRequest, body: web::Bytes) -> impl Responder {
         // Select backend server based on the algorithm
-        let backend = self.select_backend(&req).await;
+        let backend = match self.select_backend(&req).await {
+            Ok(backend) => backend,
+            Err(e) => {
+                log::error!("Failed to select a backend server, {}", e.to_string());
+                return Ok(())
+            }
+        };
 
         log::debug!("Selected backend: {}", backend.address);
 
@@ -67,42 +73,41 @@ impl Dispatcher {
                         .unwrap_or_else(|_| web::Bytes::new()),
                 )
             }
-            Err(err) => {
-                log::error!("Error forwarding request to backend: {:?}", err);
+            Err(e) => {
+                log::error!("Error forwarding request to backend, {}", e.to_string());
                 HttpResponse::InternalServerError().finish()
             },
         }
     }
 
-    async fn select_backend<'l>(&'l self, req: &'l HttpRequest) -> &'l Backend {
+    async fn select_backend<'l>(&'l self, req: &'l HttpRequest) -> Result<&'l Backend, SimpleError> {
         let healthy_backends: Vec<&Backend> = self.backends.iter()
             .filter(|backend| backend.is_healthy.load(Ordering::SeqCst))
             .collect();
 
         if healthy_backends.is_empty() {
-            log::error!("No healthy backends available");
-            panic!("No healthy backends available");
+            return Err(SimpleError::new("No healthy backends available"));
         }
 
         match self.algorithm {
             LoadBalancingAlgorithm::RoundRobin => {
-                return round_robin::round_robin(self, healthy_backends);
+                Ok(round_robin::round_robin(self, healthy_backends))
             }
 
             LoadBalancingAlgorithm::LeastConnections => {
-                return least_connections::least_connections(healthy_backends);
+                Ok(least_connections::least_connections(healthy_backends))
             }
 
             LoadBalancingAlgorithm::WeightedRoundRobin => {
-                return weighted_round_robin::weighted_round_robin(healthy_backends);
+                Ok(weighted_round_robin::weighted_round_robin(healthy_backends))
             }
 
             LoadBalancingAlgorithm::IPHashing => {
-                return ip_hashing::ip_hashing(self, req, healthy_backends);
+                Ok(ip_hashing::ip_hashing(self, req, healthy_backends))
             }
 
             LoadBalancingAlgorithm::LeastLatency => {
-                return least_latency::least_latency(healthy_backends);
+                Ok(least_latency::least_latency(healthy_backends))
             }
         }
     }

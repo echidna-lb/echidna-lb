@@ -1,7 +1,7 @@
-use std::{sync::Arc, time::{Duration, Instant}};
-use tokio::time::timeout;
 use crate::{backend::Backend, dispatcher::Dispatcher};
+use tokio::time::timeout;
 use awc::Client;
+use std::{sync::Arc, time::{Duration, Instant}};
 
 pub async fn measure_latency(backend: &Backend, timeout_duration: Duration) {
   let client = Client::default();
