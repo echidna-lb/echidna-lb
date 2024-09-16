@@ -1,9 +1,9 @@
 use crate::dispatcher::Dispatcher;
 use log::debug;
-use std::time::Duration;
+use std::sync::atomic::Ordering;
 use std::sync::atomic::{AtomicBool, AtomicUsize};
 use std::sync::{Arc, Mutex};
-use std::sync::atomic::Ordering;
+use std::time::Duration;
 
 #[derive(Clone)]
 pub struct Backend {
@@ -24,7 +24,7 @@ pub async fn health_check(dispatcher: Arc<Dispatcher>, interval: Duration, mut r
     loop {
         for backend in dispatcher.backends.iter() {
             let health_check_url = format!("{}{}", backend.address, route);
-            let response = client.get(health_check_url).send().await;
+            let response = client.get(&health_check_url).send().await;
 
             match response {
                 Ok(res) => {
@@ -36,7 +36,10 @@ pub async fn health_check(dispatcher: Arc<Dispatcher>, interval: Duration, mut r
                 }
                 Err(err) => {
                     // TODO: Add error type checking
-                    debug!("Failed to determine health of {} backend, {}", health_check_url, err);
+                    debug!(
+                        "Failed to determine health of {} backend, {}",
+                        health_check_url, err
+                    );
                     backend.is_healthy.store(false, Ordering::SeqCst);
                 }
             }

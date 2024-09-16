@@ -1,24 +1,28 @@
 use actix_web::middleware::Logger;
-use actix_web::{web::{Data, Bytes, route}, App, HttpRequest, HttpServer, Responder};
+use actix_web::{
+    web::{route, Bytes, Data},
+    App, HttpRequest, HttpServer, Responder,
+};
+use backend::{health_check, Backend};
 use clap::Parser;
+use dispatcher::{
+    algorithms::least_latency::update_latency,
+    Dispatcher,
+    LoadBalancingAlgorithm::{
+        IPHashing, LeastConnections, LeastLatency, RoundRobin, WeightedRoundRobin,
+    },
+};
+use std::io;
 use std::sync::atomic::{AtomicBool, AtomicUsize};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
-use std::io;
-use env_logger;
-use backend::{health_check, Backend};
 use tls::load_tls_config;
-use dispatcher::{
-    LoadBalancingAlgorithm::{IPHashing,LeastConnections,LeastLatency,RoundRobin,WeightedRoundRobin},
-    Dispatcher,
-    algorithms::least_latency::update_latency
-};
 
+pub mod backend;
 pub mod config;
 pub mod dispatcher;
-pub mod backend;
-pub mod tls;
 mod error;
+pub mod tls;
 
 #[actix_web::main]
 async fn main() -> io::Result<()> {
@@ -27,7 +31,11 @@ async fn main() -> io::Result<()> {
     let config = match config::load_config(args.config.as_path()) {
         Ok(config) => config,
         Err(e) => {
-            log::error!("Failed to parse config at {}, {}", args.config.as_path(), e.to_string());
+            log::error!(
+                "Failed to parse config at {}, {}",
+                args.config.to_string_lossy(),
+                e
+            );
             return Err(io::Error::new(io::ErrorKind::Other, e));
         }
     };
@@ -50,7 +58,7 @@ async fn main() -> io::Result<()> {
             active_connections: Arc::new(AtomicUsize::new(0)),
             is_healthy: Arc::new(AtomicBool::new(true)),
             current_weight: Arc::new(Mutex::new(0)),
-            latency: Arc::new(Mutex::new(Duration::from_secs(u64::MAX)))
+            latency: Arc::new(Mutex::new(Duration::from_secs(u64::MAX))),
         })
         .collect();
 
@@ -72,7 +80,12 @@ async fn main() -> io::Result<()> {
     if let Some(healthcheck_config) = config.healthcheck {
         let dispatcher_clone = dispatcher.clone();
         actix_rt::spawn(async move {
-            health_check(dispatcher_clone, Duration::from_secs(healthcheck_config.interval_sec), healthcheck_config.route).await;
+            health_check(
+                dispatcher_clone,
+                Duration::from_secs(healthcheck_config.interval_sec),
+                healthcheck_config.route,
+            )
+            .await;
         });
     }
 
@@ -89,31 +102,44 @@ async fn main() -> io::Result<()> {
             .app_data(Data::new(dispatcher.clone()))
             .wrap(Logger::default())
             .default_service(route().to(dispatch_request))
-    }).workers(config.workers.unwrap_or(10));
+    })
+    .workers(config.workers.unwrap_or(10));
 
     if let Some(ssl_config) = &config.ssl {
         let tls_config = match load_tls_config(ssl_config) {
             Ok(tls_config) => tls_config,
             Err(e) => {
-                log::error!("Failed to parse TLS config, {}", e.to_string());
+                log::error!("Failed to parse TLS config, {}", e);
                 return Err(io::Error::new(io::ErrorKind::Other, e));
             }
         };
 
-        server.bind(("0.0.0.0", config.port.unwrap_or(9000)))?
+        server
+            .bind(("0.0.0.0", config.port.unwrap_or(9000)))?
             .bind(("::", config.port.unwrap_or(9000)))?
-            .bind_rustls(("0.0.0.0", config.https_port.unwrap_or(9001)), tls_config.clone())?
-            .bind_rustls(("::", config.https_port.unwrap_or(9001)), tls_config.clone())?
+            .bind_rustls(
+                ("0.0.0.0", config.https_port.unwrap_or(9001)),
+                tls_config.clone(),
+            )?
+            .bind_rustls(
+                ("::", config.https_port.unwrap_or(9001)),
+                tls_config.clone(),
+            )?
             .run()
             .await
     } else {
-        server.bind(("0.0.0.0", config.port.unwrap_or(9000)))?
+        server
+            .bind(("0.0.0.0", config.port.unwrap_or(9000)))?
             .bind(("::", config.port.unwrap_or(9000)))?
             .run()
             .await
     }
 }
 
-async fn dispatch_request(dispatcher: Data<Arc<Dispatcher>>, req: HttpRequest, body: Bytes) -> impl Responder {
+async fn dispatch_request(
+    dispatcher: Data<Arc<Dispatcher>>,
+    req: HttpRequest,
+    body: Bytes,
+) -> impl Responder {
     dispatcher.dispatch(req, body).await
 }

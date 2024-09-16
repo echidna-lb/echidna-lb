@@ -1,11 +1,15 @@
-use crate::{dispatcher::Dispatcher, backend::Backend};
 use crate::dispatcher::algorithms::round_robin::round_robin;
+use crate::{backend::Backend, dispatcher::Dispatcher};
 use actix_web::HttpRequest;
 use std::collections::hash_map::DefaultHasher;
 use std::hash::Hash;
 use std::hash::Hasher;
 
-pub fn ip_hashing<'l,'l1>(dispatcher: &'l1 Dispatcher, req: &'l1 HttpRequest, healthy_backends: Vec<&'l Backend>) -> &'l Backend {
+pub fn ip_hashing<'l>(
+    dispatcher: &'l Dispatcher,
+    req: &'l HttpRequest,
+    healthy_backends: Vec<&'l Backend>,
+) -> &'l Backend {
     if let Some(peer_addr) = req.peer_addr() {
         let ip_str = peer_addr.ip().to_string();
         let mut hasher = DefaultHasher::new();

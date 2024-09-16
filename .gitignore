@@ -16,3 +16,5 @@ Cargo.lock
 cert.pem
 key.pem
 config.yaml
+
+**/.idea

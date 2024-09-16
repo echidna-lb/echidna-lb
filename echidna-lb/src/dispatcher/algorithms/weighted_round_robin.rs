@@ -6,7 +6,8 @@ pub fn weighted_round_robin(healthy_backends: Vec<&Backend>) -> &Backend {
     let mut selected_backend = healthy_backends[0];
 
     for backend in healthy_backends.iter() {
-        let mut current_weight: std::sync::MutexGuard<isize> = backend.current_weight.lock().unwrap();
+        let mut current_weight: std::sync::MutexGuard<isize> =
+            backend.current_weight.lock().unwrap();
         *current_weight += backend.weight as isize;
 
         if *current_weight > max_weight {

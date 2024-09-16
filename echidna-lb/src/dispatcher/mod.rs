@@ -1,9 +1,9 @@
 use crate::backend::Backend;
-use simple_error::SimpleError;
-use log;
+use crate::error::EchidnaError;
 use actix_web::{web, HttpRequest, HttpResponse, Responder};
+use algorithms::{ip_hashing, least_connections, least_latency, round_robin, weighted_round_robin};
+use log;
 use std::sync::atomic::Ordering;
-use algorithms::{ip_hashing, round_robin, weighted_round_robin, least_connections, least_latency};
 
 pub mod algorithms;
 
@@ -19,7 +19,7 @@ pub enum LoadBalancingAlgorithm {
     LeastConnections,
     IPHashing,
     WeightedRoundRobin,
-    LeastLatency
+    LeastLatency,
 }
 
 impl Dispatcher {
@@ -28,8 +28,8 @@ impl Dispatcher {
         let backend = match self.select_backend(&req).await {
             Ok(backend) => backend,
             Err(e) => {
-                log::error!("Failed to select a backend server, {}", e.to_string());
-                return Ok(())
+                log::error!("Failed to select a backend server, {}", e);
+                return HttpResponse::InternalServerError().finish();
             }
         };
 
@@ -40,7 +40,11 @@ impl Dispatcher {
 
         // Forward the request to the selected backend server
         let client = awc::Client::default();
-        let backend_url = format!("{}{}", backend.address, req.uri().path_and_query().map_or("", |x| x.as_str()));
+        let backend_url = format!(
+            "{}{}",
+            backend.address,
+            req.uri().path_and_query().map_or("", |x| x.as_str())
+        );
 
         log::debug!("Forwarding request to: {}", backend_url);
         for (header_name, header_value) in req.headers().iter() {
@@ -74,19 +78,24 @@ impl Dispatcher {
                 )
             }
             Err(e) => {
-                log::error!("Error forwarding request to backend, {}", e.to_string());
+                log::error!("Error forwarding request to backend, {}", e);
                 HttpResponse::InternalServerError().finish()
-            },
+            }
         }
     }
 
-    async fn select_backend<'l>(&'l self, req: &'l HttpRequest) -> Result<&'l Backend, SimpleError> {
-        let healthy_backends: Vec<&Backend> = self.backends.iter()
+    async fn select_backend<'l>(
+        &'l self,
+        req: &'l HttpRequest,
+    ) -> Result<&'l Backend, EchidnaError> {
+        let healthy_backends: Vec<&Backend> = self
+            .backends
+            .iter()
             .filter(|backend| backend.is_healthy.load(Ordering::SeqCst))
             .collect();
 
         if healthy_backends.is_empty() {
-            return Err(SimpleError::new("No healthy backends available"));
+            return Err(EchidnaError::from("No healthy backends available"));
         }
 
         match self.algorithm {

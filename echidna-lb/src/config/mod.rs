@@ -45,5 +45,5 @@ pub struct SslConfig {
 
 pub fn load_config<P: AsRef<Path>>(path: P) -> Result<Config, EchidnaError> {
     let config_str = fs::read_to_string(path)?;
-    Ok(serde_yaml::from_str(&config_str)?)
+    serde_yaml::from_str(&config_str).map_err(EchidnaError::from)
 }
