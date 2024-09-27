@@ -6,4 +6,15 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-tokio = { version = "1.38.0", features = ["full"] }
+actix-web = { version = "4", features = ["rustls"] }
+awc = "3.5"
+serde = { version = "1.0", features = ["derive"] }
+serde_yaml = "0.9"
+clap = { version = "4.0", features = ["derive"] }
+actix-rt = "2"
+tokio = { version = "1", features = ["full"] }
+rustls-pemfile = "1.0"
+rustls = "0.23"
+tokio-rustls = { version = "0.23" }
+env_logger = "0.10.0"
+log = "0.4"
