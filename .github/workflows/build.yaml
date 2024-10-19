@@ -1,0 +1,23 @@
+name: Build
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+    types: ['opened', 'edited', 'reopened', 'synchronize']
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Build
+      run: cd echidna-lb && cargo build --verbose
+
+    - name: Run tests
+      run: cd echidna-lb && cargo test --verbose
