@@ -3,8 +3,7 @@ EchidnaLB is a layer 7 load-balancer for HTTP backend servers written in Rust.
 
 ## Features
 - **HTTP1.1 & HTTP2**
-  - Supports both HTTP/1.1 and HTTP/2 protocols, ensuring compatibility and 
-  performance for modern web applications.
+  - Supports both HTTP/1.1 and HTTP/2 protocols, ensuring compatibility and performance for modern web applications.
 
 - **IPv4 & IPv6 Listeners**
   - Supports both IPv4 & IPv6 listeners for greater network flexibility.
@@ -51,9 +50,7 @@ You may download a pre-compiled binary from the [GitHub release page](https://gi
 
 ## Usage
 
-By default, EchidnaLB binds to port 9000 (HTTP) and 9001 (HTTPS). If you wish 
-to bind to the standard HTTP and HTTPS ports 80 and 443 respectively, on Linux, 
-every port below 1024 is `privileged` so you either have to:
+By default, EchidnaLB binds to port 9000 (HTTP) and 9001 (HTTPS). If you wish to bind to the standard HTTP and HTTPS ports 80 and 443 respectively, on Linux, every port below 1024 is `privileged` so you either have to:
 
 - run the program as root `sudo`
 - use `setcap 'cap_net_bind_service=+ep' /path/to/echidna-lb`
@@ -107,9 +104,8 @@ echidna-lb --config config.yaml
 ```
 
 ## Contributing
-Contributions are welcome! Please open an issue or submit a pull request if 
-you have suggestions or improvements.
+Contributions are welcome! Please open an issue or submit a pull request if you have suggestions or improvements.
 
 ## License
-This project is licensed under the MIT License. 
+This project is licensed under the MIT License.
 See the [LICENSE](./LICENSE) file for more details.
