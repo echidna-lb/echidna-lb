@@ -12,6 +12,7 @@ use dispatcher::{
         IPHashing, LeastConnections, LeastLatency, RoundRobin, WeightedRoundRobin,
     },
 };
+use error::EchidnaError::Custom;
 use std::io;
 use std::sync::atomic::{AtomicBool, AtomicUsize};
 use std::sync::{Arc, Mutex};
@@ -62,13 +63,13 @@ async fn main() -> io::Result<()> {
         })
         .collect();
 
-    let algorithm = match config.algorithm.as_deref().unwrap_or("RoundRobin") {
-        "RoundRobin" => RoundRobin,
-        "LeastConnections" => LeastConnections,
-        "WeightedRoundRobin" => WeightedRoundRobin,
-        "IPHashing" => IPHashing,
-        "LeastLatency" => LeastLatency,
-        _ => panic!("Unknown algorithm: {:?}", config.algorithm),
+    let algorithm = match config.algorithm.as_deref() {
+        Some("RoundRobin") | None => RoundRobin,
+        Some("LeastConnections") => LeastConnections,
+        Some("WeightedRoundRobin") => WeightedRoundRobin,
+        Some("IPHashing") => IPHashing,
+        Some("LeastLatency") => LeastLatency,
+        _ => return Err(Custom(format!("Unknown algorithm: {:?}", config.algorithm)).into()),
     };
 
     let dispatcher = Arc::new(Dispatcher {
