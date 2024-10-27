@@ -12,6 +12,7 @@ use dispatcher::{
         IPHashing, LeastConnections, LeastLatency, RoundRobin, WeightedRoundRobin,
     },
 };
+use error::EchidnaError::Custom;
 use std::io;
 use std::sync::atomic::{AtomicBool, AtomicUsize};
 use std::sync::{Arc, Mutex};
@@ -54,7 +55,7 @@ async fn main() -> io::Result<()> {
         .into_iter()
         .map(|b| Backend {
             address: b.url,
-            weight: b.weight,
+            weight: b.weight.unwrap_or(1),
             active_connections: Arc::new(AtomicUsize::new(0)),
             is_healthy: Arc::new(AtomicBool::new(true)),
             current_weight: Arc::new(Mutex::new(0)),
@@ -62,13 +63,13 @@ async fn main() -> io::Result<()> {
         })
         .collect();
 
-    let algorithm = match config.algorithm.as_str() {
-        "RoundRobin" => RoundRobin,
-        "LeastConnections" => LeastConnections,
-        "WeightedRoundRobin" => WeightedRoundRobin,
-        "IPHashing" => IPHashing,
-        "LeastLatency" => LeastLatency,
-        _ => panic!("Unknown algorithm: {}", config.algorithm),
+    let algorithm = match config.algorithm.as_deref() {
+        Some("RoundRobin") | None => RoundRobin,
+        Some("LeastConnections") => LeastConnections,
+        Some("WeightedRoundRobin") => WeightedRoundRobin,
+        Some("IPHashing") => IPHashing,
+        Some("LeastLatency") => LeastLatency,
+        _ => return Err(Custom(format!("Unknown algorithm: {:?}", config.algorithm)).into()),
     };
 
     let dispatcher = Arc::new(Dispatcher {
@@ -82,7 +83,7 @@ async fn main() -> io::Result<()> {
         actix_rt::spawn(async move {
             health_check(
                 dispatcher_clone,
-                Duration::from_secs(healthcheck_config.interval_sec),
+                Duration::from_secs(healthcheck_config.interval_sec.unwrap_or(10)),
                 healthcheck_config.route,
             )
             .await;

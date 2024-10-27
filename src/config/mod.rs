@@ -18,7 +18,7 @@ pub struct Config {
     pub port: Option<u16>,
     pub debug: Option<bool>,
     pub https_port: Option<u16>,
-    pub algorithm: String,
+    pub algorithm: Option<String>,
     pub workers: Option<usize>,
     pub healthcheck: Option<HealthcheckConfig>,
     pub backends: Vec<BackendConfig>,
@@ -27,14 +27,14 @@ pub struct Config {
 
 #[derive(Deserialize)]
 pub struct HealthcheckConfig {
-    pub interval_sec: u64,
+    pub interval_sec: Option<u64>,
     pub route: String,
 }
 
 #[derive(Deserialize)]
 pub struct BackendConfig {
     pub url: String,
-    pub weight: usize,
+    pub weight: Option<usize>,
 }
 
 #[derive(Debug, Deserialize)]

@@ -1,6 +1,6 @@
 use serde_yaml::Error as SerdeError;
 use std::fmt::{Debug, Display, Formatter};
-use std::io::Error as IoError;
+use std::io::{self, Error as IoError};
 use tokio_rustls::rustls::Error as RustlsError;
 
 #[derive(Debug)]
@@ -62,5 +62,16 @@ impl From<RustlsError> for EchidnaError {
 impl From<&str> for EchidnaError {
     fn from(err: &str) -> EchidnaError {
         EchidnaError::Custom(String::from(err))
+    }
+}
+
+impl From<EchidnaError> for io::Error {
+    fn from(err: EchidnaError) -> io::Error {
+        match err {
+            EchidnaError::Io(e) => e,
+            EchidnaError::Serde(e) => io::Error::new(io::ErrorKind::InvalidInput, e),
+            EchidnaError::Rustls(e) => io::Error::new(io::ErrorKind::NotConnected, e),
+            EchidnaError::Custom(e) => io::Error::new(io::ErrorKind::Other, e),
+        }
     }
 }

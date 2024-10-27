@@ -1,4 +1,5 @@
 # EchidnaLB
+![EchidnaLB](./echidna-lb.png)
 EchidnaLB is a layer 7 load-balancer for HTTP backend servers written in Rust.
 
 ## Features
@@ -67,12 +68,12 @@ workers: 10 # optional
 
 backends:
   - url: "http://127.0.0.1:8081"
-    weight: 2
+    weight: 2 # optional
   - url: "http://127.0.0.1:8082"
-    weight: 1
+    weight: 1 # optional
 
 healthcheck: # optional
-  interval_sec: 10
+  interval_sec: 10 # optional
   route: "/health"
 
 ssl: #optional
@@ -80,15 +81,17 @@ ssl: #optional
   key_path: "key.pem"
 ```
 
-- `port`: The port on which the HTTP server listens.
-- `https_port`: (Optional) The port on which the HTTPS server listens.
-- `algorithm`: The load balancing algorithm to use. Available options:
-RoundRobin, LeastConnections, WeightedRoundRobin, IPHashing.
-- `workers`: (Optional) The number of worker threads to be used by the server.
+- `port`: The port on which the HTTP server listens. Defaults to `9000`.
+- `https_port`: (Optional) The port on which the HTTPS server listens. Defaults to `9001`.
+- `algorithm`: (Optional) The load balancing algorithm to use. Available options:
+`RoundRobin`, `LeastConnections`, `WeightedRoundRobin`, `IPHashing` and `LeastLatency`. Defaults to `RoundRobin`.
+- `workers`: (Optional) The number of worker threads to be used by the server. Defaults to `10`.
 - `backends`: A list of backend servers with their URLs and weights (for weighted algorithms).
+  - `url`: A backend endpoint URL.
+  - `weight`: (Optional) The weight associated with the endpoint, only used for `WeightedRoundRobin` algorithm. Defaults to `1`.
 - `healthcheck`: (Optional) Configuration for periodic health checks.
-  - `interval_sec`: Interval in seconds between health checks.
   - `route`: The HTTP route on the backend server used for health checks.
+  - `interval_sec`: (Optional) Interval in seconds between health checks. Defaults to `10`.
 - `ssl`: (Optional) SSL configuration for HTTPS.
   - cert_path: Path to the SSL certificate file.
   - key_path: Path to the SSL private key file.
