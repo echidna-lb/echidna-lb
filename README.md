@@ -1,5 +1,5 @@
 # EchidnaLB
-![EchidnaLB](./echidna-lb.png)
+<div align="center"><img src="./echidna-lb.png" width="350" alt="EchidnaLB" /></div>
 EchidnaLB is a layer 7 load-balancer for HTTP backend servers written in Rust.
 
 ## Features
